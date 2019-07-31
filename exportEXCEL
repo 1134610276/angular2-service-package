@@ -36,6 +36,7 @@ public exportExcel(res)
 		</body>
 	</html>`;
 			
+			
 	// 下面这段函数作用是：将template中的变量替换为页面内容ctx获取到的值
 
 		// 获取表单的名字和表单查询的内容
