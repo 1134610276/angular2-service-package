@@ -35,6 +35,7 @@ export class ComputerInfoService {
         return this.os.hostname();
     }
 
+    
     /* 获取个人用户名*/
     getUserName(): string {
         return this.os.userInfo().username;
