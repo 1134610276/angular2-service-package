@@ -1,0 +1,62 @@
+1.前端原生导出excel，借助file-saver导出文件 //导出Excel
+
+public exportExcel(res)
+{
+	var uri = 'data:application/vnd.ms-excel;base64,',
+	template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+	<head>
+		<!--[if gte mso 9]>
+			<xml>
+				<x:ExcelWorkbook>
+					<x:ExcelWorksheets>
+						<x:ExcelWorksheet>
+							<x:Name>{worksheet}</x:Name>
+							<x:WorksheetOptions>
+								<x:DisplayGridlines/>
+							</x:WorksheetOptions>
+						</x:ExcelWorksheet>
+					</x:ExcelWorksheets>
+				</x:ExcelWorkbook>
+			</xml>
+		<![endif]-->
+		<style type="text/css">
+			table td {
+				text-align: center;
+			};
+			.header{
+				background-color:'gray'
+			}
+			.align-left {text-align: left !important;}
+			.align-right {text-align: right !important;}
+			.align-center {text-align: center !important;}
+		</style>
+	</head>
+		<body>
+			<table>{table}</table>
+		</body>
+	</html>`;
+			
+	// 下面这段函数作用是：将template中的变量替换为页面内容ctx获取到的值
+
+		// 获取表单的名字和表单查询的内容
+		
+		//res是html的字符串,注意使用原生的table标签格式
+		var ctx = {worksheet: 'aaaa' || 'Worksheet', table:res};
+		
+		let fileReader = new FileReader();
+		//字符串转blob
+		var blob = new Blob([this.format(template, ctx)],{type:"text/plain;charset=utf-8"});
+		//blob转成base64
+		fileReader.readAsDataURL(blob);
+		fileReader.onloadend =function(){
+			FileSaver.saveAs(fileReader.result, "excel.xls");
+		};	
+};
+// format()函数：通过格式操作使任意类型的数据转换成一个字符串
+private format (s, c) {
+	return s.replace(/{(\w+)}/g,
+		function(m, p) {
+			return c[p];
+		}
+	);
+}; 
