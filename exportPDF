@@ -1,4 +1,12 @@
- public exportPDF(){
+这里介绍的方案有两个:
+1.html2canvas + jsPDF
+2.pdfMake
+
+
+(1)首先html2canvas + jsPDF这种方案主要采取的思路是先采用html2canvas来进行截图,截取后才通过计算每页高度的方式来进行裁剪进行分页，最后通过jsPDF来合成图片
+代码:
+
+public exportPDF(){
 	// 要输出的 PDF 每页的宽高尺寸，单位是 pt
 	let pageWidth = 592.28  
 	let pageHeight = 841.89
