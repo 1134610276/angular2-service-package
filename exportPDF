@@ -1,0 +1,142 @@
+ public exportPDF(){
+	// 要输出的 PDF 每页的宽高尺寸，单位是 pt
+	let pageWidth = 592.28  
+	let pageHeight = 841.89
+
+	var title=parseInt(document.getElementsByClassName('ag-header-row')[0].style.height.slice(0,-2))+document.getElementById('tt-grid-content').offsetHeight;
+
+	//表头那部分高度
+	var titleHeight = 592.28/( this.gridDataWrapper.nativeElement.offsetWidth ) * title;
+
+	//列表每行的高度
+	var cellHeight = 592.28/(this.gridDataWrapper.nativeElement.offsetWidth) * 48;
+
+	let page=0;
+	//第一页
+	//每条数据的索引
+	let number=0
+	//每页添加空以后  给下一页造成的高度
+	let shengHeight = 0;
+
+	var tag =true
+
+	this.rowData.forEach((element,index) => {
+		//第一页时执行
+		if(page==0){
+			//减去表头高度后，计算每页能最多存放的记录数
+			number= Math.floor((841.89 - titleHeight) / cellHeight)
+			if(index ==number){
+				//当达到最大记录数以后 添加个空记录，用于分页时防止数据分割
+				this.rowData.splice(number,0,{})
+				//记录空记录给下一页表的顶部造成的高度
+				shengHeight = cellHeight-(841.89 -titleHeight -cellHeight*number)
+				page=1
+			}
+		}else{
+			//获取上一页给本页顶部造成的高度
+			let pageNumber = Math.floor((841.89 - shengHeight) /cellHeight)
+			//本页刚开始的时候就执行  ，这里不放在下面的if里面是因为  index的最大值是一开始this.rowData的长度  而不是操作后的长度 所以到最后的时候 index是不会等于pageNumber+number+1
+			if(tag){   
+				this.rowData.splice(pageNumber+number+1,0,{});
+				tag=false	
+			}
+			if(index ==(pageNumber+number+1)){ //当到达本页数据的最大值的时候 就开始为下一页的做数据预处理
+				tag=true
+				shengHeight = cellHeight-(841.89 -shengHeight -cellHeight*pageNumber)
+				number = pageNumber+number+1;
+			}
+		}
+	});
+	this.gridDataComponent.gridApi.setRowData(this.rowData)
+	this.html2CanvasFun()
+}
+
+private html2CanvasFun(){
+	html2canvas(this.gridDataWrapper.nativeElement).then((canvas)=>{
+		console.log(canvas)
+		var contentWidth = canvas.width;
+		var contentHeight = canvas.height;
+		//一页pdf显示html页面生成的canvas高度;
+		var pageHeight = contentWidth / 592.28 * 841.89;
+		console.log(pageHeight)
+		//未生成pdf的html页面高度
+		var leftHeight = contentHeight;
+		//页面偏移
+		var position = 0;
+		//a4纸的尺寸[595.28,841.89]，html页面生成的canvas在pdf中图片的宽高
+		var imgWidth = 595.28;
+		var imgHeight = 592.28/contentWidth * contentHeight;
+
+		var pageData = canvas.toDataURL('image/jpeg', 1.0);
+		var pdf = new jsPDF('', 'pt', 'a4');
+
+		//有两个高度需要区分，一个是html页面的实际高度，和生成pdf的页面高度(841.89)
+		//当内容未超过pdf一页显示的范围，无需分页
+		if (leftHeight < pageHeight) {
+		pdf.addImage(pageData, 'JPEG', 0, 0, imgWidth, imgHeight );
+		} else {
+				while(leftHeight > 0) {
+						pdf.addImage(pageData, 'JPEG', 0, position, imgWidth, imgHeight)
+						leftHeight -= pageHeight;
+						position -= 841.89;
+						//避免添加空白页
+						if(leftHeight > 0) {
+							pdf.addPage();
+						}
+				}
+		}
+		pdf.save('aaaa.pdf');
+	})
+}
+
+(2)pdfMake这种是采取数据的方式导出
+  
+  因为pdfMake不支持中文字体，固自己需要设置字体
+  //配置PDF的字体
+  //请求取本地字体
+	let normal = this.http.get('/assets/font/Semibold.ttf',{responseType: 'blob'});
+	let bold = this.http.get('/assets/font/Semibold.ttf',{responseType: 'blob'});
+	let italics = this.http.get('/assets/font/Semibold.ttf',{responseType: 'blob'});
+	let bolditalics = this.http.get('/assets/font/Semibold.ttf',{responseType: 'blob'});
+
+	let base64data:any =[];
+	Observable.zip(normal,bold,italics,bolditalics).subscribe((res: Array<Blob>) =>{
+		res.forEach((fontValue)=>{
+			//二进制转base64
+			let fileReader = new FileReader();
+			fileReader.readAsDataURL(fontValue);
+			fileReader.onload = function() {
+					let resule: any = fileReader.result;  
+					let data = resule.substring(resule.indexOf(','));
+					base64data.push(data)
+			}
+			//把字体转成base64的格式后才能识别
+			fileReader.onloadend =()=>{
+				if(base64data.length ==4){
+					pdfMake.vfs = {
+						normal:base64data[0],
+						bold:base64data[1],
+						italics:base64data[2],
+						bolditalics:base64data[3],
+					};
+					pdfMake.fonts = {
+						fonts:{
+							normal:'normal',
+							bold:'bold',
+							italics:'italics',
+							bolditalics:'bolditalics'
+						}
+					}
+				}	
+			}
+		});
+	});
+  
+  //文档:https://pdfmake.github.io/docs/document-definition-object/headers-footers/
+  
+  //看文档选择自己要下载的PDF格式传入数据（pdfData）试下下载
+  
+  pdfMake.createPdf(pdfData).download(`${fileName}.pdf`, () =>
+  {
+      MsgBoxUtil.closeWaiting();
+  });
